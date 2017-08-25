@@ -1,0 +1,103 @@
+# -*- coding: utf-8 -*-
+import pandas as pd
+import re
+import pdb
+
+PATH = 'data_20170821.csv'
+STUFEN = ['Stufe %i' % elem for elem in range(1,11)]
+
+
+def removeGender(text):
+    text = re.sub('in ', ' ', text)
+    text = re.sub('in$', '', text) 
+    return text.replace('frau', 'mann')
+
+def removeAcademicDegree(text):
+    return re.sub('(Dipl)+(\.)*(-)*(om)*(-)*', '', text)
+
+def removeStudies(text):
+    return re.sub('Studium (der)*', '', text)
+
+def removeParenthesis(text):
+    return re.sub('\(.*\)', '', text)
+
+def takeFirstJob(text):
+    text = text.split(',')[0]
+    text = text.split(';')[0]
+    return text.split('/')[0]
+
+def correctEnding(text):
+    text = re.sub('log$', 'loge', text)
+    text = re.sub('gog$', 'goge', text)
+    text = re.sub('ärtz$', 'arzt', text)
+    text = re.sub('wält$', 'walt', text)
+    return text
+
+def upperCase(text):
+    return text.title()
+
+
+def stripText(text):
+    return text.strip()
+
+
+def categorizeJobs(data, col):
+    data[col] = data[col].apply(takeFirstJob)
+    data[col] = data[col].apply(stripText)
+    data[col] = data[col].apply(removeGender)
+    data[col] = data[col].apply(removeAcademicDegree)
+    data[col] = data[col].apply(removeParenthesis)
+    data[col] = data[col].apply(removeStudies)
+    data[col] = data[col].apply(removeStudies)
+    data[col] = data[col].apply(correctEnding)
+    data[col] = data[col].apply(upperCase)
+    data[col] = data[col].apply(stripText)
+
+
+def name2number(elem):
+    try:
+        return int(elem)
+    except:
+        return 1
+
+
+def object2Categorical(data, col):
+    data[col] = data[col].astype('category')
+
+
+
+def cleanData():
+
+    data = pd.read_csv(PATH)
+
+    # Replace NAN values
+    data.fillna('-', inplace=True)
+
+    # change company names in salaries ranges to number
+    for stufe in STUFEN:
+        data[stufe] = data[stufe].apply(name2number)
+
+
+    # change to categorical values
+    objColumns = data.dtypes[data.dtypes=='object'].index.tolist()
+    for column in objColumns:
+        numberCategories = len(data[column].unique())
+        if numberCategories < 20:
+            print column
+            print 'Number of unique categories: %i' % numberCategories
+            object2Categorical(data, column)
+
+    col = 'education'
+    categorizeJobs(data, col)
+
+    # Fix types - birthyear 1067
+    data.birthyear[data.birthyear < 1900] = 1967
+
+
+    data.to_csv('clean_' + PATH)
+
+
+
+
+if __name__ == '__main__':
+    cleanData()
