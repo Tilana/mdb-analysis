@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
 import re
-import pdb
 
 PATH = 'data_20170821.csv'
 STUFEN = ['Stufe %i' % elem for elem in range(1,11)]
@@ -16,7 +15,12 @@ def removeAcademicDegree(text):
     return re.sub('(Dipl)+(\.)*(-)*(om)*(-)*', '', text)
 
 def removeStudies(text):
-    return re.sub('Studium (der)*', '', text)
+    text = re.sub('Studium (der)*', '', text)
+    text = re.sub('Promovierte(r)* ', '', text)
+    text = re.sub('Staatl. Gepr. ', '', text)
+    text = re.sub(' für .*', '', text)
+    return text
+
 
 def removeParenthesis(text):
     return re.sub('\(.*\)', '', text)
@@ -70,6 +74,9 @@ def cleanData():
 
     data = pd.read_csv(PATH)
 
+    # remove first and last name
+    data = data.drop(['first_name', 'last_name', 'family_name'], axis=1)
+
     # Replace NAN values
     data.fillna('-', inplace=True)
 
@@ -78,20 +85,19 @@ def cleanData():
         data[stufe] = data[stufe].apply(name2number)
 
 
-    # change to categorical values
-    objColumns = data.dtypes[data.dtypes=='object'].index.tolist()
-    for column in objColumns:
-        numberCategories = len(data[column].unique())
-        if numberCategories < 20:
-            print column
-            print 'Number of unique categories: %i' % numberCategories
-            object2Categorical(data, column)
+    # categorize education and professions
+    categorizeJobs(data, 'education')
+    categorizeJobs(data, 'profession')
 
-    col = 'education'
-    categorizeJobs(data, col)
 
     # Fix types - birthyear 1067
     data.birthyear[data.birthyear < 1900] = 1967
+
+    # change to categorical values
+    objColumns = data.dtypes[data.dtypes=='object'].index.tolist()
+    for column in objColumns:
+        if column != 'name':
+            object2Categorical(data, column)
 
 
     data.to_csv('clean_' + PATH)
