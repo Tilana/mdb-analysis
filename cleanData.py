@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
 import re
+import pdb
 
 PATH = 'data_20170821.csv'
 STUFEN = ['Stufe %i' % elem for elem in range(1,11)]
@@ -65,10 +66,6 @@ def name2number(elem):
         return 1
 
 
-def object2Categorical(data, col):
-    data[col] = data[col].astype('category')
-
-
 
 def cleanData():
 
@@ -92,12 +89,6 @@ def cleanData():
 
     # Fix types - birthyear 1067
     data.birthyear[data.birthyear < 1900] = 1967
-
-    # change to categorical values
-    objColumns = data.dtypes[data.dtypes=='object'].index.tolist()
-    for column in objColumns:
-        if column != 'name':
-            object2Categorical(data, column)
 
 
     data.to_csv('clean_' + PATH)
