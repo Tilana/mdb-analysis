@@ -1,13 +1,13 @@
-import pdb
 import json
 import pandas as pd
+import pdb
 
 mdbFile = '../mdb-scraper/data/mdb-20170821.json'
 voteFile = '../mdb-scraper/data/votes-20170821.csv'
 filename = voteFile.split('-')[-1]
 
 STUFEN = ['Stufe %i' % num for num in range(1,11)]
-KEYS= ['name', 'family_name', 'gender'] + STUFEN 
+KEYS= ['name', 'family_name', 'gender', 'profession_group', 'children', 'state', 'martial_status', 'academic_prefix', 'honorific_prefix', 'religion', 'location'] + STUFEN 
 
 
 def loadJson(path):
@@ -21,11 +21,12 @@ def loadCSV(path):
 
 def setData(data, ind, person):
     for key in KEYS:
-        value = person[key]
-        if not value:
-            value = 0 
-        elif isinstance(value, list) and len(value)>1:
-            value = len(value)
+        try:
+            value = person[key]
+            if isinstance(value, list):
+                value = len(value)
+        except:
+            value = '-'
         data.loc[ind, key] = value 
 
 
