@@ -30,9 +30,6 @@ def plotConfusionMatrix(cm, classes, title='Confusion Matrix'):
 def predictionModel():
 
     data = pd.read_csv('clean_data_20170821.csv')
-    length = len(data)
-    threshold = int(length * 0.6)
-
     categories = {}
 
     objColumns = data.dtypes[data.dtypes=='object'].index.tolist()
@@ -46,18 +43,15 @@ def predictionModel():
 
         print target
 
-        trainX = data[features][:threshold]
-        trainY = data[target][:threshold]
-        testX = data[features][threshold:]
-        testY = data[target][threshold:]
-    
+        trainData = data.sample(frac=0.6, random_state=1)
+        testData = data.loc[~data.index.isin(trainData.index)]
+
         model = LogisticRegression()
-        model.fit(trainX, trainY)
-        predY = model.predict(testX)
+        model.fit(trainData[features], trainData[target])
+        predY = model.predict(testData[features])
 
-
-        print accuracy_score(testY, predY)
-        confusionMatrix = confusion_matrix(testY, predY)
+        print accuracy_score(testData[target], predY)
+        confusionMatrix = confusion_matrix(testData[target], predY)
         print confusionMatrix
         plotConfusionMatrix(confusionMatrix, classes=categories[target], title=target)
 
