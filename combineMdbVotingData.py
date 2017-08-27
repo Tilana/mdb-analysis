@@ -2,12 +2,12 @@ import json
 import pandas as pd
 import pdb
 
-mdbFile = '../mdb-scraper/data/mdb-20170821.json'
-voteFile = '../mdb-scraper/data/votes-20170821.csv'
-filename = voteFile.split('-')[-1]
+PATH = '../data/'
+mdbFile = PATH + 'mdb-20170821.json'
+voteFile = PATH + 'mdbAbstimmungen.csv'
 
 STUFEN = ['Stufe %i' % num for num in range(1,11)]
-KEYS= ['name', 'family_name', 'gender', 'profession_group', 'children', 'state', 'martial_status', 'academic_prefix', 'honorific_prefix', 'religion', 'location'] + STUFEN 
+KEYS= ['gender', 'state', 'academic_prefix', 'honorific_prefix', 'religion'] + STUFEN 
 
 
 def loadJson(path):
@@ -30,29 +30,27 @@ def setData(data, ind, person):
         data.loc[ind, key] = value 
 
 
-def setName(data):
-    data['name'] = data[['first_name', 'last_name']].apply(lambda x: ' '.join(x), axis=1)
-
-
-def isMatch(name, person, data, field='last_name'):
-    matches = data[data[field]==name]
+def isMatch(name, person, data, field='Name'):
+    matches = data[data[field]==name.encode('utf8')]
     numberMatches = len(matches)
     if numberMatches == 1:
         return (True, matches.index[0])
     elif numberMatches > 1:
-        fullname = person['name']
-        return isMatch(fullname, person, data, 'name')
+        firstName = person['given_name'].encode('utf8')
+        fullnameMatch = matches[matches['Vorname']==firstName]
+        if len(fullnameMatch) == 1:
+            return (True, fullnameMatch.index[0])
+        else:
+            return (False, -1)
     else:
         return (False, -1)
 
 
-def combineDatasets():
+def combineMdbVotingData():
     personData= loadJson(mdbFile)
     persons = personData['persons']
 
     data = loadCSV(voteFile)
-    setName(data)
-
     fails = []
 
     for person in persons:
@@ -61,20 +59,22 @@ def combineDatasets():
         if exists:
             setData(data, index, person)
         else:
+            print 'WARNING: %s  %s not found' % (person['given_name'], person['family_name'])
             fails.append(person)
 
+    print '---------'
     print 'Number of voting data: %i' % len(data)
-    print 'Number of persons searched for: % i' % len(persons)
-    print '   - voting data not found: %i' % len(fails)
+    print 'Number of MDb data: % i' % len(persons)
+    print '   - Number of name mismatches: %i' % len(fails)
 
     data = data.dropna(subset = ['Stufe 1', 'Stufe 10'])
     print 'Number of combined data: %i' % len(data)
 
-    data.to_csv('data_' + filename, encoding='utf8')
+    data.to_csv(PATH + 'combinedData.csv', encoding='utf8')
 
 
 
 if __name__ == '__main__':
-    combineDatasets()
+    combineMdbVotingData()
 
 
